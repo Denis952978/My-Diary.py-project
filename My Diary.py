@@ -1,12 +1,9 @@
-# Complete Python Diary Application with Delete Entry Feature
-
 import sqlite3
 from tkinter import *
 from tkinter import messagebox, filedialog
 from tkcalendar import Calendar
 from fpdf import FPDF
 
-# Initialize the database and GUI
 class DiaryApp:
     def __init__(self, root):
         self.root = root
@@ -37,13 +34,27 @@ class DiaryApp:
         self.conn.commit()
 
     def create_widgets(self):
+        # Add a logo at the top
+        top_logo_frame = Frame(self.root)
+        top_logo_frame.pack(side=TOP, fill=X)
+
+        # Load the logo image
+        try:
+            logo_image = PhotoImage(file="logo.png")  # Replace 'logo.png' with your logo file
+            logo_label = Label(top_logo_frame, image=logo_image)
+            logo_label.image = logo_image  # Keep a reference to avoid garbage collection
+            logo_label.pack(pady=10)
+        except TclError:
+            logo_label = Label(top_logo_frame, text="My Diary", font=("Arial", 24, "bold"))
+            logo_label.pack(pady=10)
+
         # Top Frame for Entry Actions
         top_frame = Frame(self.root)
         top_frame.pack(side=TOP, fill=X, padx=10, pady=5)
 
         Button(top_frame, text="New Entry", command=self.new_entry, width=15).pack(side=LEFT, padx=5)
         Button(top_frame, text="View Entries", command=self.view_entries, width=15).pack(side=LEFT, padx=5)
-        Button(top_frame, text="Delete Entry", command=self.delete_entry, width=15).pack(side=LEFT, padx=5)  # New Button
+        Button(top_frame, text="Delete Entry", command=self.delete_entry, width=15).pack(side=LEFT, padx=5)
         Button(top_frame, text="Export to PDF", command=self.export_to_pdf, width=15).pack(side=LEFT, padx=5)
 
         # Main Frame for Calendar and Diary Entry Display
