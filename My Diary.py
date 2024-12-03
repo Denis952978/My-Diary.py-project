@@ -72,7 +72,7 @@ class DiaryApp:
         # Create a new diary entry
         entry_window = Toplevel(self.root)
         entry_window.title("New Diary Entry")
-        entry_window.geometry("400x500")
+        entry_window.geometry("400x600")
 
         Label(entry_window, text="Title:").pack(anchor=W, padx=10, pady=5)
         title_entry = Entry(entry_window, width=50)
@@ -90,16 +90,35 @@ class DiaryApp:
         content_text = Text(entry_window, wrap=WORD, height=10)
         content_text.pack(padx=10, pady=5)
 
-        Button(entry_window, text="Save", command=lambda: self.save_entry(entry_window, title_entry.get(), 
-                                                                          tags_entry.get(), mood_entry.get(), 
-                                                                          content_text.get("1.0", END))).pack(pady=10)
+        # Photo upload
+        photo_path = StringVar()
 
-    def save_entry(self, window, title, tags, mood, content):
+        def upload_photo():
+            file_path = filedialog.askopenfilename(
+                filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.bmp;*.gif")],
+                title="Select an Image"
+            )
+            if file_path:
+                photo_path.set(file_path)
+                messagebox.showinfo("Photo Selected", f"Photo added: {file_path}")
+
+        Button(entry_window, text="Upload Photo", command=upload_photo).pack(pady=10)
+
+        Button(entry_window, text="Save", command=lambda: self.save_entry(
+            entry_window, 
+            title_entry.get(), 
+            tags_entry.get(), 
+            mood_entry.get(), 
+            content_text.get("1.0", END), 
+            photo_path.get()
+        )).pack(pady=10)
+
+    def save_entry(self, window, title, tags, mood, content, photo):
         date = self.calendar.get_date()
         self.cursor.execute("""
         INSERT INTO entries (date, title, content, tags, mood, image_path)
-        VALUES (?, ?, ?, ?, ?, NULL)
-        """, (date, title, content, tags, mood))
+        VALUES (?, ?, ?, ?, ?, ?)
+        """, (date, title, content, tags, mood, photo))
         self.conn.commit()
         messagebox.showinfo("Success", "Entry saved!")
         window.destroy()
@@ -107,7 +126,7 @@ class DiaryApp:
     def view_entries(self):
         # Display diary entries for the selected date
         selected_date = self.calendar.get_date()
-        self.cursor.execute("SELECT title, content, tags, mood FROM entries WHERE date=?", (selected_date,))
+        self.cursor.execute("SELECT title, content, tags, mood, image_path FROM entries WHERE date=?", (selected_date,))
         entries = self.cursor.fetchall()
 
         self.display_text.delete("1.0", END)
@@ -117,6 +136,8 @@ class DiaryApp:
                 self.display_text.insert(END, f"Mood: {entry[3]}\n")
                 self.display_text.insert(END, f"Tags: {entry[2]}\n")
                 self.display_text.insert(END, f"Content:\n{entry[1]}\n")
+                if entry[4]:
+                    self.display_text.insert(END, f"Photo: {entry[4]}\n")
                 self.display_text.insert(END, "-"*50 + "\n")
         else:
             self.display_text.insert(END, "No entries found for this date.")
@@ -158,7 +179,7 @@ class DiaryApp:
     def export_to_pdf(self):
         # Export diary entries to a PDF
         selected_date = self.calendar.get_date()
-        self.cursor.execute("SELECT title, content, tags, mood FROM entries WHERE date=?", (selected_date,))
+        self.cursor.execute("SELECT title, content, tags, mood, image_path FROM entries WHERE date=?", (selected_date,))
         entries = self.cursor.fetchall()
 
         if not entries:
@@ -174,6 +195,8 @@ class DiaryApp:
             pdf.cell(0, 10, f"Mood: {entry[3]}", ln=True)
             pdf.cell(0, 10, f"Tags: {entry[2]}", ln=True)
             pdf.multi_cell(0, 10, f"Content:\n{entry[1]}\n")
+            if entry[4]:
+                pdf.cell(0, 10, f"Photo: {entry[4]}", ln=True)
             pdf.cell(0, 10, "-"*50, ln=True)
 
         save_path = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF files", "*.pdf")])
